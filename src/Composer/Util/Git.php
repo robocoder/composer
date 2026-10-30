@@ -505,13 +505,13 @@ class Git
     }
 
     /**
-     * Checks if git version supports --filter=blob:none (git 2.19+)
+     * Checks if git version supports --filter=blob:none (git 2.27+)
      */
     public static function supportsPartialClone(ProcessExecutor $process): bool
     {
         $gitVersion = self::getVersion($process);
 
-        if ($gitVersion !== null && version_compare($gitVersion, '2.19', '>=')) {
+        if ($gitVersion !== null && version_compare($gitVersion, '2.27', '>=')) {
             return true;
         }
 
