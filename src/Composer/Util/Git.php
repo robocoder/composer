@@ -519,6 +519,48 @@ class Git
     }
 
     /**
+     * Determines whether or not the git workspace is a partial clone.
+     */
+    public static function isPartialClone(ProcessExecutor $process, string $path): bool
+    {
+        $cmd = ['git', 'config', '--get', 'extensions.partialClone'];
+
+        if (0 === $process->execute($cmd, $output, $path) && trim($output)) {
+            return true;
+        }
+
+        $cmd = ['git', 'config', '--get-regexp', '^remote\.[^.]+\.(promisor|partialclonefilter)'];
+
+        if (0 === $process->execute($cmd, $output, $path) && trim($output)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     *  Determines whether or not the git workspace is a shallow clone.
+     */
+    public static function isShallowClone(ProcessExecutor $process, string $path): bool
+    {
+        $gitVersion = self::getVersion($process);
+
+        if ($gitVersion && version_compare($gitVersion, '2.15', '<')) {
+            $cmd = ['git', 'rev-parse', '--git-dir'];
+
+            if (0 !== $process->execute($cmd, $output, $path)) {
+                return false;
+            }
+
+            return file_exists("{$output}/shallow");
+        }
+
+        $cmd = ['git', 'rev-parse', '--is-shallow-repository'];
+
+        return ! (bool) $process->execute($cmd, $output, $path);
+    }
+
+    /**
      * Parses git rev-list output, removing 'commit <hash>' header lines for git < 2.33.
      *
      * When --no-commit-header is not available (git < 2.33), git rev-list --format outputs

@@ -716,6 +716,41 @@ class Filesystem
     }
 
     /**
+     * glob()-like function to find pathnames matching the regex
+     */
+    public static function findFiles(string $directory, string $regex, bool $skipHiddenSubdirectories = false): array
+    {
+        $matchedFiles = [];
+
+        $it = new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS);
+
+        if ($skipHiddenSubdirectories) {
+            $fi = new RecursiveCallbackFilterIterator(
+                $it,
+                function ($current, $key, $iterator) {
+                    if ($iterator->hasChildren()) {
+                        return $current->getFilename()[0] !== '.';
+                    }
+
+                    return true;
+                }
+            );
+
+            $ri = new RecursiveIteratorIterator($fi, RecursiveIteratorIterator::LEAVES_ONLY);
+        } else {
+            $ri = new RecursiveIteratorIterator($it, RecursiveIteratorIterator::CHILD_FIRST);
+        }
+
+        foreach ($ri as $file) {
+            if ($file->isFile() && preg_match($pattern, $file->getFilename())) {
+                $matchedFiles[] = $file->getPathname();
+            }
+        }
+
+        return $matchedFiles;
+    }
+
+    /**
      * @return int
      */
     protected function directorySize(string $directory)
