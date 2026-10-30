@@ -94,7 +94,6 @@ class GitDownloader extends VcsDownloader implements DvcsDownloaderInterface
         $path = $this->normalizePath($path);
         $cachePath = $this->config->get('cache-vcs-dir').'/'.Preg::replace('{[^a-z0-9.]}i', '-', Url::sanitize($url)).'/';
         $ref = $package->getSourceReference();
-        $partialClone = GitUtil::supportsPartialClone($this->process) ? '--filter=tree:0' : '';
 
         if (!empty($this->cachedPackages[$package->getId()][$ref])) {
             $msg = "Cloning ".$this->getShortHash($ref).' from cache';
@@ -106,14 +105,19 @@ class GitDownloader extends VcsDownloader implements DvcsDownloaderInterface
             }
 
             $commands = [
-                array_merge(['git', 'clone', '--no-checkout', $partialClone, $cachePath, $path], $cloneFlags),
+                array_merge(['git', 'clone', '--no-checkout', $cachePath, $path], $cloneFlags),
                 ['git', 'remote', 'set-url', 'origin', '--', '%sanitizedUrl%'],
                 ['git', 'remote', 'add', 'composer', '--', '%sanitizedUrl%'],
             ];
         } else {
             $msg = "Cloning ".$this->getShortHash($ref);
+
+            $cloneCommand = GitUtil::supportsPartialClone($this->process)
+                ? ['git', 'clone', '--no-checkout', '--filter=tree:0', '--', '%url%', $path]
+                : ['git', 'clone', '--no-checkout', '--', '%url%', $path];
+
             $commands = [
-                array_merge(['git', 'clone', '--no-checkout', $partialClone, '--', '%url%', $path]),
+                $cloneCommand,
                 ['git', 'remote', 'add', 'composer', '--', '%url%'],
                 ['git', 'fetch', 'composer'],
                 ['git', 'remote', 'set-url', 'origin', '--', '%sanitizedUrl%'],
